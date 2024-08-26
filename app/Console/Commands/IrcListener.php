@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
 
+require_once("./app/PP.php");
+
 class IrcMessage
 {
     public function __construct(
@@ -158,6 +160,22 @@ class IrcListener extends Command
             Cache::increment("message_count");
             $count = Cache::get("message_count");
             echo "$count\n";
+
+            $predictions = [
+                new \App\PPPredictionOption("Adam Almore", 250),
+                new \App\PPPredictionOption("ThePrimeagen", 1000),
+                new \App\PPPredictionOption("teej_dv", 35),
+            ];
+
+            $predictions = array_map(function ($prediction) {
+                return [
+                    'option' => $prediction->option,
+                    'points' => $prediction->points,
+                ];
+            }, $predictions);
+
+            Cache::set("prediction_prompt", "Who misses the first shot");
+            Cache::set("prediction_options", $predictions);
 
             /* // Example: Send a message to the channel */
             /* if (strpos($data, '!hello') !== false) { */

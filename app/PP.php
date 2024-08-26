@@ -13,9 +13,9 @@ class PPPredictionOption {
     public string $option;
     public int $points;
 
-    function __construct(string $option) {
+    function __construct(string $option, int $points = 0) {
         $this->option = $option;
-        $this->points = 0;
+        $this->points = $points;
     }
 }
 
@@ -239,5 +239,3 @@ class PP {
         }
     }
 }
-
-?>

@@ -314,9 +314,12 @@
         @if ($prompt !== '')
             <div class="fixed top-8 right-8 w-256 bg-white text-black border border-gray-200 shadow-lg p-4 rounded-lg">
                 <div class="font-bold mb-2 text-2xl">{{ $prompt }}</div>
+                <div class="font-bold mb-2 text-2xl">{{ $totalPoints }}</div>
                 <ol class="list-decimal text-xl pl-8">
-                    @foreach ($options as $option)
-                        <li class="text-xl">{{ $option }}</li>
+                    @foreach ($options as $o)
+                        <li class="text-xl">
+                            {{ $o['option'] }} / {{ $o['points'] }}
+                        </li>
                     @endforeach
                 </ol>
             </div>
