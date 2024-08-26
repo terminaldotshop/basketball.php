@@ -1,4 +1,18 @@
 <div wire:poll.1000ms class="relative w-[1920px] h-[1080px]">
+    @if ($prompt !== '')
+        <div class="absolute top-8 right-8 w-256 text-white font-mono border border-[#787F85] bg-[#1A1D1E] py-8 px-12 flex flex-col gap-4">
+            <div class="text-2xl lowercase">{{ $prompt }}</div>
+            <ol class="list-decimal list-inside text-xl marker:text-[#9BA1A6] space-y-2">
+                @foreach ($options as $o)
+                    <li class="text-xl">
+                        {{ $o['option'] }} <span class="text-[#9BA1A6]">/</span> <span class="text-[#9BA1A6]">{{ $o['points'] }}</span>
+                        <div class="border-b-4 border-[#FF5C00]" style="width:{{ ($o['points'] / $totalPoints) * 100 }}%" />
+                    </li>
+                @endforeach
+            </ol>
+        </div>
+    @endif
+
   <div class="w-full absolute bottom-[5px] inset-x-0 overflow-visible">
     <div class="shadow w-[1048px] h-[96px] mx-auto font-mono flex overflow-visible items-center" style="background: linear-gradient(180deg, #4D4E4E 0%, #1A1E21 100%);">
         <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
