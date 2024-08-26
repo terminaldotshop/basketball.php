@@ -161,7 +161,7 @@ class PPMessage
 
     public $mods = [
         "nightshadedude" => true,
-        "beastco" => false,
+        "beastco" => true,
         "samhuckabee" => true,
         "theprimeagen" => true,
         "teej_dv" => true,
