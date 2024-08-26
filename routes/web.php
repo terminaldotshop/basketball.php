@@ -2,6 +2,7 @@
 
 use App\Livewire\Beginbot;
 use App\Livewire\Overlay;
+use App\Livewire\Adam;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,3 +22,4 @@ Route::get('/', function () {
 
 Route::get('/overlay', Overlay::class);
 Route::get('/beginbot', Beginbot::class);
+Route::get('/adam', Adam::class);
