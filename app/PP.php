@@ -1,36 +1,34 @@
 <?php
+
 namespace App;
 
-$mods = [
-    "nightshadedude" => true,
-    "beastco" => false,
-    "samhuckabee" => true,
-    "theprimeagen" => true,
-    "teej_dv" => true,
-];
-
-class PPPredictionOption {
+class PPPredictionOption
+{
     public string $option;
     public int $points;
 
-    function __construct(string $option, int $points = 0) {
+    function __construct(string $option, int $points = 0)
+    {
         $this->option = $option;
         $this->points = $points;
     }
 
-    function __toString() {
+    function __toString()
+    {
         return "$this->option: $this->points";
     }
 }
 
-class PPPrediction {
+class PPPrediction
+{
     public bool $valid;
     public string $prediction;
     /** @var Array<PPPredictionOption> */
     public array $options;
 
     // !p <time> !ntehountehou !noehunoetuh
-    function __construct(PPMessage $msg) {
+    function __construct(PPMessage $msg)
+    {
         $this->options = [];
 
         $options = explode("!", $msg->text);
@@ -42,7 +40,8 @@ class PPPrediction {
         $this->prediction = substr($options[1], 2);
     }
 
-    public function totalPoints() {
+    public function totalPoints()
+    {
         $total = 0;
         foreach ($this->options as $option) {
             $total += $option->points;
@@ -50,7 +49,8 @@ class PPPrediction {
         return $total;
     }
 
-    public function __toString() {
+    public function __toString()
+    {
         $out = "PPPrediction: $this->prediction\n";
         foreach ($this->options as $option) {
             $out .= "$option\n";
@@ -59,49 +59,60 @@ class PPPrediction {
     }
 }
 
-class PPUserPrediction {
+class PPUserPrediction
+{
     public int $points = 0;
     public int $option = 0;
     public bool $resolved = false;
 
-    function __construct($points, $option) {
+    function __construct($points, $option)
+    {
         $this->points = $points;
         $this->option = $option;
         $this->resolved = false;
     }
 
-    function __toString() {
+    function __toString()
+    {
         return "PPUserPrediction($this->option): $this->points";
     }
 }
 
-class PPUser {
+class PPUser
+{
     public string $name = "";
     public int $points = 0;
     /** @var Array<string, PPUserPrediction> */
     public array $predictions = [];
 
-    function __construct(string $name) {
+    function __construct(string $name)
+    {
         $this->name = $name;
         $this->points = 1000;
         $this->predictions = [];
     }
 
-    public function __toString() {
+    public function __toString()
+    {
         return "user: $this->name -- $this->points";
     }
 
-    public function predict(PPPrediction $pred, int $point, int $option) {
+    public function predict(PPPrediction $pred, int $point, int $option)
+    {
         if (isset($this->predictions[$pred->prediction]) && $prev = $this->predictions[$pred->prediction]) {
             if ($prev->resolved) {
                 return;
             }
             $this->points += $prev->points;
-            $pred->options[$option]->points -= $prev->points;
+            $pred->options[$prev->option]->points -= $prev->points;
         }
 
         $pointsBet = min($point, $this->points);
         if ($pointsBet == 0) {
+            return;
+        }
+
+        if (count($pred->options) <= $option || $option < 0) {
             return;
         }
 
@@ -110,7 +121,8 @@ class PPUser {
         $pred->options[$option]->points += $pointsBet;
     }
 
-    public function resolve(PPPrediction $pred, int $winningOption) {
+    public function resolve(PPPrediction $pred, int $winningOption)
+    {
         $winningTotalPoints = $pred->totalPoints();
         if ($winningTotalPoints == 0) {
             return;
@@ -128,15 +140,17 @@ class PPUser {
             if ($our->option == $winningOption) {
                 $this->points += floor(
                     ($our->points /
-                    $pred->options[$winningOption]->points) *
-                    $winningTotalPoints);
+                        $pred->options[$winningOption]->points) *
+                        $winningTotalPoints
+                );
             }
             $our->resolved = true;
         }
     }
 }
 
-class PPMessage {
+class PPMessage
+{
     public string $text;
     public string $from;
     public bool $super;
@@ -144,13 +158,24 @@ class PPMessage {
     public int $pointsPredicted;
     public int $predictedIndex;
 
-    function __construct(string $from, string $text) {
-        global $mods;
+
+    public $mods = [
+        "nightshadedude" => true,
+        "beastco" => false,
+        "samhuckabee" => true,
+        "theprimeagen" => true,
+        "teej_dv" => true,
+    ];
+
+    function __construct(string $from, string $text)
+    {
+        $text = trim($text);
+
         $this->from = $from;
-        $this->text = $text;
+        $this->text = trim($text);
 
         $lower = strtolower($from);
-        $this->super = isset($mods[$lower]) && $mods[$lower];
+        $this->super = isset($this->mods[$lower]) && $this->mods[$lower];
 
         if (strlen($text) < 2) {
             $this->cmd = "NONE";
@@ -176,7 +201,13 @@ class PPMessage {
         $this->predictedIndex = intval($this->cmd) - 1;
     }
 
-    function isValid() {
+    function __toString()
+    {
+        return "PPMessage($this->from, $this->text, $this->cmd, " . strval($this->super) . ")";
+    }
+
+    function isValid()
+    {
         if (!str_starts_with($this->text, "!")) {
             return false;
         }
@@ -207,21 +238,23 @@ class PPMessage {
         }
         return false;
     }
-
 }
 
-class PP {
+class PP
+{
     /** @var Array<string, PPUser> */
     public array $users;
 
-    public ?PPPrediction $prediction = null;
+    public ?PPPrediction $prediction = NULL;
 
-    function __construct() {
+    function __construct()
+    {
         $this->users = [];
-        $this->prediction = null;
+        $this->prediction = NULL;
     }
 
-    function getUser(string $from) {
+    function getUser(string $from)
+    {
         if (!isset($this->users[$from])) {
             $this->users[$from] = new PPUser($from);
         }
@@ -229,11 +262,15 @@ class PP {
         return $this->users[$from];
     }
 
-    public function pushMessage(string $from, string $text) {
+    public function pushMessage(string $from, string $text)
+    {
         $msg = new PPMessage($from, $text);
         $usr = $this->getUser($from);
+        echo "message: $msg\n";
+        echo "user: $usr\n";
 
         if (!$msg->isValid()) {
+            echo "NOT VALID";
             return "";
         }
 
@@ -242,7 +279,7 @@ class PP {
         }
 
         if ($msg->cmd == "p") {
-            if ($this->prediction != null) {
+            if ($this->prediction != NULL) {
                 return "@" . $msg->from . ": there is an active prediction";
             }
 
@@ -256,7 +293,8 @@ class PP {
         }
 
         if ($msg->cmd == "r") {
-            if ($this->prediction === null) {
+            echo "HAYAYAYAYAYA";
+            if ($this->prediction === NULL) {
                 return "@" . $msg->from . ": there is no active prediction";
             }
 
@@ -275,11 +313,11 @@ class PP {
             foreach ($this->users as $user) {
                 $user->resolve($this->prediction, $winner - 1);
             }
-            $this->prediction = null;
+            $this->prediction = NULL;
             return "";
         }
 
-        if ($this->prediction != null) {
+        if ($this->prediction != NULL) {
             $usr->predict($this->prediction, $msg->pointsPredicted, $msg->predictedIndex);
         }
     }

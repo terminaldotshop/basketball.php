@@ -17,7 +17,7 @@ class Adam extends Component
         /* dd($options); */
 
         $options = Cache::get('prediction_options', []);
-        $totalPoints = 0;
+        $totalPoints = 1;
         foreach ($options as $option) {
             $totalPoints += $option["points"];
         }

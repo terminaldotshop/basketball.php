@@ -57,7 +57,7 @@ class IrcMessage
         }
     }
 
-    public function prettyPrint(): string
+    public function __toString(): string
     {
         // Format the message for pretty printing
         $output = "IRC Message:\n";
@@ -146,6 +146,7 @@ class IrcListener extends Command
             die("Connection closed immediately after opening.\n");
         }
 
+        $pp = new \App\PP();
 
         while (!feof($socket)) {
             $data = fgets($socket, 512);
@@ -155,27 +156,50 @@ class IrcListener extends Command
                 continue;
             }
 
-
             $message = new IrcMessage($data);
-            Cache::increment("message_count");
-            $count = Cache::get("message_count");
-            echo "$count\n";
+            if ($message->username == NULL || $message->message == NULL) {
+                continue;
+            }
 
-            $predictions = [
-                new \App\PPPredictionOption("Adam Almore", 250),
-                new \App\PPPredictionOption("ThePrimeagen", 100),
-                new \App\PPPredictionOption("teej_dv", 35),
-            ];
+            /* if (strtolower($message->username) !== "theprimeagen") { */
+            /*     continue; */
+            /* } */
+            /* echo "$message\n"; */
 
-            $predictions = array_map(function ($prediction) {
-                return [
-                    'option' => $prediction->option,
-                    'points' => $prediction->points,
-                ];
-            }, $predictions);
+            try {
+                $pushed = $pp->pushMessage($message->username, $message->message);
+                echo "$pushed\n";
+                if ($pushed !== "") {
+                    fwrite($socket, "PRIVMSG $channel :$pushed\r\n");
+                    continue;
+                }
 
-            Cache::set("prediction_prompt", "Who misses the first shot");
-            Cache::set("prediction_options", $predictions);
+                if ($pp->prediction !== NULL) {
+                    $predictions = $pp->prediction->options;
+                    $predictions = array_map(function ($prediction) {
+                        return [
+                            'option' => $prediction->option,
+                            'points' => $prediction->points,
+                        ];
+                    }, $predictions);
+                    Cache::set("prediction_prompt", $pp->prediction->prediction);
+                    Cache::set("prediction_options", $predictions);
+                } else {
+                    Cache::set("prediction_prompt", "");
+                }
+            } catch (\Throwable $e) {
+            } catch (\Exception $e) {
+            }
+
+            /* $predictions = [ */
+            /*     new \App\PPPredictionOption("Adam Almore", 250), */
+            /*     new \App\PPPredictionOption("ThePrimeagen", 100), */
+            /*     new \App\PPPredictionOption("teej_dv", 35), */
+            /* ]; */
+
+
+            /* Cache::set("prediction_prompt", "Who misses the first shot"); */
+            /* Cache::set("prediction_options", $predictions); */
 
             /* // Example: Send a message to the channel */
             /* if (strpos($data, '!hello') !== false) { */
