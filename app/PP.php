@@ -20,14 +20,31 @@ class PPPredictionOption {
 }
 
 class PPPrediction {
+    public bool $valid;
     public string $prediction;
     /** @var Array<PPPredictionOption> */
     public array $options;
 
-    // !p !ntehountehou !noehunoetuh
+    // !p <time> !ntehountehou !noehunoetuh
     function __construct(PPMessage $msg) {
+        $this->options = [];
+
         $options = explode("!", $msg->text);
+        foreach (array_slice($options, 2) as $option) {
+            array_push($this->options, new PPPredictionOption($option));
+        }
+
+        $this->valid = true;
     }
+
+    public function totalPoints() {
+        $total = 0;
+        foreach ($this->options as $option) {
+            $total += $option->points;
+        }
+        return $total;
+    }
+
 }
 
 class PPUserPrediction {
@@ -73,7 +90,8 @@ class PPUser {
         $pred->options[$option]->points += $pointsBet;
     }
 
-    public function resolve(PPPrediction $pred, int $winningOption, int $winningTotalPoints) {
+    public function resolve(PPPrediction $pred, int $winningOption) {
+        $winningTotalPoints = $pred->totalPoints();
         if ($winningTotalPoints == 0) {
             return;
         }
@@ -135,7 +153,7 @@ class PPMessage {
             return false;
         }
 
-        $isModMessage = $this->cmd == "p";
+        $isModMessage = $this->cmd == "p" || $this->cmd == "r";
         if ($isModMessage && $this->super) {
             return true;
         }
@@ -149,8 +167,13 @@ class PPMessage {
                 return $this->pointsPredicted > 0;
             case "c":
                 return $this->text === "!c";
-            case "help":
-                return $this->text === "!help me i am poor";
+            case "r":
+                if (strlen($this->text) === 4) {
+                    $parts = explode(" ", $this->text);
+                    if (count($parts) == 2) {
+                        return intval($parts[1]) > 0;
+                    }
+                }
         }
         return false;
     }
@@ -159,8 +182,12 @@ class PPMessage {
 class PP {
     /** @var Array<string, PPUser> */
     public array $users;
+
+    public ?PPPrediction $predictions;
+
     function __construct() {
         $this->users = [];
+        $this->predictions = null;
     }
 
     function getUser(string $from) {
@@ -184,6 +211,31 @@ class PP {
         }
 
         if ($msg->cmd == "p") {
+            if ($this->predictions != null) {
+                return "@" . $msg->from . ": there is an active prediction";
+            }
+
+            $pred = new PPPrediction($msg);
+            if (!$pred->valid) {
+                return "@" . $msg->from . ": Invalid prediction syntax";
+            }
+            $this->predictions = $pred;
+        }
+
+        if ($msg->cmd == "r") {
+            if ($this->predictions === null) {
+                return "@" . $msg->from . ": there is no active prediction";
+            }
+
+            $this->predictions = $pred;
+            $winner = intval(substr($msg->text, 3));
+            if ($winner == 0) {
+                return "@" . $msg->from . ": invalid r syntax e.g.: !r 1";
+            }
+
+            foreach ($this->users as $user) {
+                $user->resolve($this->predictions, $winner);
+            }
         }
     }
 }
