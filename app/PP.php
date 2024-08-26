@@ -17,6 +17,10 @@ class PPPredictionOption {
         $this->option = $option;
         $this->points = $points;
     }
+
+    function __toString() {
+        return "$this->option: $this->points";
+    }
 }
 
 class PPPrediction {
@@ -35,6 +39,7 @@ class PPPrediction {
         }
 
         $this->valid = true;
+        $this->prediction = substr($options[1], 2);
     }
 
     public function totalPoints() {
@@ -45,6 +50,13 @@ class PPPrediction {
         return $total;
     }
 
+    public function __toString() {
+        $out = "PPPrediction: $this->prediction\n";
+        foreach ($this->options as $option) {
+            $out .= "$option\n";
+        }
+        return $out;
+    }
 }
 
 class PPUserPrediction {
@@ -56,6 +68,10 @@ class PPUserPrediction {
         $this->points = $points;
         $this->option = $option;
         $this->resolved = false;
+    }
+
+    function __toString() {
+        return "PPUserPrediction($this->option): $this->points";
     }
 }
 
@@ -71,8 +87,12 @@ class PPUser {
         $this->predictions = [];
     }
 
+    public function __toString() {
+        return "user: $this->name -- $this->points";
+    }
+
     public function predict(PPPrediction $pred, int $point, int $option) {
-        if ($prev = $this->predictions[$pred->prediction]) {
+        if (isset($this->predictions[$pred->prediction]) && $prev = $this->predictions[$pred->prediction]) {
             if ($prev->resolved) {
                 return;
             }
@@ -96,7 +116,12 @@ class PPUser {
             return;
         }
 
-        if ($our = $this->predictions[$pred->prediction]) {
+        echo "for $this->name\n";
+        foreach ($this->predictions as $k => $v) {
+            echo "prediction: $k => $v\n";
+        }
+
+        if (isset($this->predictions[$pred->prediction]) && $our = $this->predictions[$pred->prediction]) {
             if ($our->resolved) {
                 return;
             }
@@ -117,6 +142,7 @@ class PPMessage {
     public bool $super;
     public string $cmd;
     public int $pointsPredicted;
+    public int $predictedIndex;
 
     function __construct(string $from, string $text) {
         global $mods;
@@ -146,6 +172,8 @@ class PPMessage {
                 }
                 $this->pointsPredicted = intval($items[1]);
         }
+
+        $this->predictedIndex = intval($this->cmd) - 1;
     }
 
     function isValid() {
@@ -156,6 +184,8 @@ class PPMessage {
         $isModMessage = $this->cmd == "p" || $this->cmd == "r";
         if ($isModMessage && $this->super) {
             return true;
+        } else if ($isModMessage) {
+            return false;
         }
 
         switch ($this->cmd) {
@@ -177,17 +207,18 @@ class PPMessage {
         }
         return false;
     }
+
 }
 
 class PP {
     /** @var Array<string, PPUser> */
     public array $users;
 
-    public ?PPPrediction $predictions;
+    public ?PPPrediction $prediction = null;
 
     function __construct() {
         $this->users = [];
-        $this->predictions = null;
+        $this->prediction = null;
     }
 
     function getUser(string $from) {
@@ -211,7 +242,7 @@ class PP {
         }
 
         if ($msg->cmd == "p") {
-            if ($this->predictions != null) {
+            if ($this->prediction != null) {
                 return "@" . $msg->from . ": there is an active prediction";
             }
 
@@ -219,23 +250,37 @@ class PP {
             if (!$pred->valid) {
                 return "@" . $msg->from . ": Invalid prediction syntax";
             }
-            $this->predictions = $pred;
+
+            $this->prediction = $pred;
+            return "";
         }
 
         if ($msg->cmd == "r") {
-            if ($this->predictions === null) {
+            if ($this->prediction === null) {
                 return "@" . $msg->from . ": there is no active prediction";
             }
 
-            $this->predictions = $pred;
-            $winner = intval(substr($msg->text, 3));
+            $winner = substr($msg->text, 3);
+            echo "winner: \"$winner\"\n";
+            $winner = intval($winner);
             if ($winner == 0) {
                 return "@" . $msg->from . ": invalid r syntax e.g.: !r 1";
             }
 
-            foreach ($this->users as $user) {
-                $user->resolve($this->predictions, $winner);
+            echo "predictions: " . count($this->prediction->options) . "\n";
+            if (count($this->prediction->options) < $winner) {
+                return "@" . $msg->from . ": FALIDE RESOLVE, Winner to large";
             }
+
+            foreach ($this->users as $user) {
+                $user->resolve($this->prediction, $winner - 1);
+            }
+            $this->prediction = null;
+            return "";
+        }
+
+        if ($this->prediction != null) {
+            $usr->predict($this->prediction, $msg->pointsPredicted, $msg->predictedIndex);
         }
     }
 }
