@@ -1,4 +1,6 @@
 <div wire:poll.1000ms>
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         :root {
             color-scheme: light dark;
@@ -309,6 +311,17 @@
                 </div>
             </div>
         </div>
+        @if ($prompt !== '')
+            <div class="fixed top-8 right-8 w-256 bg-white text-black border border-gray-200 shadow-lg p-4 rounded-lg">
+                <div class="font-bold mb-2 text-2xl">{{ $prompt }}</div>
+                <ol class="list-decimal text-xl pl-8">
+                    @foreach ($options as $option)
+                        <li class="text-xl">{{ $option }}</li>
+                    @endforeach
+                </ol>
+            </div>
+        @endif
+
         <div class="ticker">
             <div class="ticker-message">
                 <span style="color: #b0b1b0; font-family: monospace">
