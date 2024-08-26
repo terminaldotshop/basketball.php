@@ -163,7 +163,7 @@ class IrcListener extends Command
 
             $predictions = [
                 new \App\PPPredictionOption("Adam Almore", 250),
-                new \App\PPPredictionOption("ThePrimeagen", 1000),
+                new \App\PPPredictionOption("ThePrimeagen", 100),
                 new \App\PPPredictionOption("teej_dv", 35),
             ];
 
